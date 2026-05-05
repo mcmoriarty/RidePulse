@@ -286,7 +286,6 @@ td,
 }
 
 input[type="date"],
-input[type="text"],
 input[type="number"],
 select,
 textarea {
@@ -620,7 +619,6 @@ button:hover,
   }
 
   input[type="date"],
-  input[type="text"],
   input[type="number"],
   select,
   textarea {

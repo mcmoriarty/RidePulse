@@ -172,15 +172,9 @@ function initializeFirebase() {
 function handleSubmit(event) {
   event.preventDefault();
 
-  if (!isValidDateString(elements.date.value)) {
-    alert("Please enter the date as YYYY-MM-DD.");
-    elements.date.focus();
-    return;
-  }
-
   const payload = {
     id: elements.activityId.value || crypto.randomUUID(),
-    date: normalizeDateString(elements.date.value),
+    date: elements.date.value,
     cycleTime: roundNumber(elements.cycleTime.value),
     distance: roundNumber(elements.distance.value),
     activeCalories: roundNumber(elements.activeCalories.value),
@@ -231,7 +225,7 @@ function handleTableAction(event) {
 
 function fillForm(entry) {
   elements.activityId.value = entry.id;
-  elements.date.value = normalizeDateString(entry.date);
+  elements.date.value = entry.date;
   elements.cycleTime.value = entry.cycleTime;
   elements.distance.value = entry.distance;
   elements.activeCalories.value = entry.activeCalories;
@@ -631,15 +625,6 @@ function point(index, value, maxValue, xStep, padding, chartHeight) {
 
 function parseActivityDate(value) {
   return new Date(`${value}T12:00:00`);
-}
-
-function normalizeDateString(value) {
-  return String(value).trim();
-}
-
-function isValidDateString(value) {
-  const trimmed = normalizeDateString(value);
-  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) && !Number.isNaN(parseActivityDate(trimmed).getTime());
 }
 
 function normalizeEntry(item) {
