@@ -160,14 +160,27 @@ function initializeFirebase() {
       },
     );
   });
+
+  auth.getRedirectResult().catch((error) => {
+    updateSyncUI({
+      enabled: true,
+      message: `Firebase sign-in error: ${error.message}`,
+    });
+  });
 }
 
 function handleSubmit(event) {
   event.preventDefault();
 
+  if (!isValidDateString(elements.date.value)) {
+    alert("Please enter the date as YYYY-MM-DD.");
+    elements.date.focus();
+    return;
+  }
+
   const payload = {
     id: elements.activityId.value || crypto.randomUUID(),
-    date: elements.date.value,
+    date: normalizeDateString(elements.date.value),
     cycleTime: roundNumber(elements.cycleTime.value),
     distance: roundNumber(elements.distance.value),
     activeCalories: roundNumber(elements.activeCalories.value),
@@ -218,7 +231,7 @@ function handleTableAction(event) {
 
 function fillForm(entry) {
   elements.activityId.value = entry.id;
-  elements.date.value = entry.date;
+  elements.date.value = normalizeDateString(entry.date);
   elements.cycleTime.value = entry.cycleTime;
   elements.distance.value = entry.distance;
   elements.activeCalories.value = entry.activeCalories;
@@ -620,6 +633,15 @@ function parseActivityDate(value) {
   return new Date(`${value}T12:00:00`);
 }
 
+function normalizeDateString(value) {
+  return String(value).trim();
+}
+
+function isValidDateString(value) {
+  const trimmed = normalizeDateString(value);
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) && !Number.isNaN(parseActivityDate(trimmed).getTime());
+}
+
 function normalizeEntry(item) {
   return {
     id: item.id || crypto.randomUUID(),
@@ -675,11 +697,16 @@ async function signInWithGoogle() {
 
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
+    if (isMobileDevice()) {
+      await firebase.auth().signInWithRedirect(provider);
+      return;
+    }
+
     await firebase.auth().signInWithPopup(provider);
   } catch (error) {
     updateSyncUI({
       enabled: true,
-      message: `Could not sign in: ${error.message}`,
+      message: `Could not sign in: ${formatAuthError(error)}`,
     });
   }
 }
@@ -695,4 +722,26 @@ async function signOutOfFirebase() {
       message: `Could not sign out: ${error.message}`,
     });
   }
+}
+
+function isMobileDevice() {
+  return window.matchMedia("(max-width: 900px)").matches || navigator.maxTouchPoints > 0;
+}
+
+function formatAuthError(error) {
+  if (!error || !error.code) return error?.message || "Unknown Firebase auth error.";
+
+  if (error.code === "auth/unauthorized-domain") {
+    return "This domain is not authorized in Firebase Auth. Add your site URL under Authorized domains.";
+  }
+
+  if (error.code === "auth/popup-closed-by-user") {
+    return "The sign-in popup was closed before you finished.";
+  }
+
+  if (error.code === "auth/popup-blocked") {
+    return "The browser blocked the popup. On mobile, redirect sign-in should be used.";
+  }
+
+  return error.message || error.code;
 }

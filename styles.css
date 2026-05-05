@@ -286,6 +286,7 @@ td,
 }
 
 input[type="date"],
+input[type="text"],
 input[type="number"],
 select,
 textarea {
@@ -619,16 +620,12 @@ button:hover,
   }
 
   input[type="date"],
+  input[type="text"],
   input[type="number"],
   select,
   textarea {
     width: 100%;
     max-width: 100%;
-  }
-
-  input[type="date"] {
-    appearance: none;
-    -webkit-appearance: none;
   }
 
   .filters {
