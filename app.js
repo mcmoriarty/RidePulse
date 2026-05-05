@@ -74,7 +74,7 @@ function loadEntries() {
 }
 
 function initializeForm() {
-  elements.date.value = formatDate(new Date());
+  elements.date.value = formatDisplayDate(new Date());
 }
 
 function wireEvents() {
@@ -172,9 +172,16 @@ function initializeFirebase() {
 function handleSubmit(event) {
   event.preventDefault();
 
+  const isoDate = parseDisplayDate(elements.date.value);
+  if (!isoDate) {
+    alert("Please enter the date as MM-DD-YYYY.");
+    elements.date.focus();
+    return;
+  }
+
   const payload = {
     id: elements.activityId.value || crypto.randomUUID(),
-    date: elements.date.value,
+    date: isoDate,
     cycleTime: roundNumber(elements.cycleTime.value),
     distance: roundNumber(elements.distance.value),
     activeCalories: roundNumber(elements.activeCalories.value),
@@ -225,7 +232,7 @@ function handleTableAction(event) {
 
 function fillForm(entry) {
   elements.activityId.value = entry.id;
-  elements.date.value = entry.date;
+  elements.date.value = formatDisplayDate(parseActivityDate(entry.date));
   elements.cycleTime.value = entry.cycleTime;
   elements.distance.value = entry.distance;
   elements.activeCalories.value = entry.activeCalories;
@@ -238,7 +245,7 @@ function fillForm(entry) {
 function resetForm() {
   elements.form.reset();
   elements.activityId.value = "";
-  elements.date.value = formatDate(new Date());
+  elements.date.value = formatDisplayDate(new Date());
   elements.saveButton.textContent = "Save activity";
 }
 
@@ -625,6 +632,22 @@ function point(index, value, maxValue, xStep, padding, chartHeight) {
 
 function parseActivityDate(value) {
   return new Date(`${value}T12:00:00`);
+}
+
+function formatDisplayDate(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${month}-${day}-${year}`;
+}
+
+function parseDisplayDate(value) {
+  const match = String(value).trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!match) return null;
+
+  const [, month, day, year] = match;
+  const date = new Date(`${year}-${month}-${day}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : formatDate(date);
 }
 
 function normalizeEntry(item) {
