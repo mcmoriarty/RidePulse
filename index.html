@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RidePulse - Cycle Training Tracker</title>
+    <meta
+      name="description"
+      content="Track cycle time, distance, calories, and heart rate, then compare progress over time."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <script src="firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">R</div>
+          <div>
+            <h1>RidePulse</h1>
+          </div>
+        </div>
+
+        <section class="panel accent">
+          <p class="panel-label">Quick stats</p>
+          <div class="stack">
+            <div>
+              <span class="metric-value" id="lifetimeCycleTime">0</span>
+              <span class="metric-unit">cycle time</span>
+            </div>
+            <div>
+              <span class="metric-value" id="lifetimeDistance">0</span>
+              <span class="metric-unit">mi total</span>
+            </div>
+            <div>
+              <span class="metric-value" id="lifetimeCalories">0</span>
+              <span class="metric-unit">active calories</span>
+            </div>
+            <div>
+              <span class="metric-value" id="lifetimeAvgHeartRate">0</span>
+              <span class="metric-unit">avg bpm</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel focus-panel">
+          <p class="panel-label">Focus this month</p>
+          <h3 id="focusMonth">No data yet</h3>
+          <p id="focusText">Add your first session to unlock trends.</p>
+        </section>
+
+        <section class="panel">
+          <p class="panel-label">How it works</p>
+          <ul class="tips">
+            <li>Add each cycling session or workout as you finish it.</li>
+            <li>Track cycle time, distance, calories, and heart rate.</li>
+            <li>Compare monthly trends and keep the log tidy over time.</li>
+          </ul>
+        </section>
+
+        <section class="panel sync-panel">
+          <div class="sync-head">
+            <div>
+              <p class="panel-label">Cloud sync</p>
+              <h3>Save across devices</h3>
+            </div>
+            <span class="sync-pill" id="syncStatus">Local only</span>
+          </div>
+          <p id="syncDescription" class="sync-copy">
+            Add your Firebase config to enable sign-in and cloud syncing.
+          </p>
+          <div class="sync-actions">
+            <button type="button" class="primary" id="signInButton">Sign in with Google</button>
+            <button type="button" class="secondary" id="signOutButton" hidden>Sign out</button>
+          </div>
+          <p class="sync-user" id="syncUser"></p>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section class="metrics">
+          <article class="metric-card">
+            <span class="metric-label">This month cycle time</span>
+            <strong id="monthCycleTime">0 min</strong>
+            <small id="monthCycleTimeDelta">No comparison yet</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">This month distance</span>
+            <strong id="monthDistance">0 mi</strong>
+            <small id="monthDistanceDelta">No comparison yet</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Active calories</span>
+            <strong id="monthActiveCalories">0</strong>
+            <small id="monthActiveCaloriesDelta">No comparison yet</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Total calories</span>
+            <strong id="monthTotalCalories">0</strong>
+            <small id="monthTotalCaloriesDelta">No comparison yet</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Average heart rate</span>
+            <strong id="monthAvgHeartRate">0 bpm</strong>
+            <small id="monthAvgHeartRateDelta">No comparison yet</small>
+          </article>
+        </section>
+
+        <section class="grid">
+          <article class="panel form-panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-label">Log activity</p>
+                <h3>Add a cycling session or workout</h3>
+              </div>
+            </div>
+
+            <form id="activityForm" class="form">
+              <input type="hidden" id="activityId" />
+              <label>
+                Date
+                <input type="date" id="activityDate" required />
+              </label>
+              <label>
+                Cycle time (min)
+                <input type="number" id="activityCycleTime" min="0" step="1" placeholder="60" required />
+              </label>
+              <label>
+                Distance (mi)
+                <input type="number" id="activityDistance" min="0" step="0.1" placeholder="18.4" required />
+              </label>
+              <label>
+                Active calories
+                <input type="number" id="activityActiveCalories" min="0" step="1" placeholder="640" required />
+              </label>
+              <label>
+                Total calories
+                <input type="number" id="activityTotalCalories" min="0" step="1" placeholder="820" required />
+              </label>
+              <label>
+                Average heart rate (bpm)
+                <input type="number" id="activityAvgHeartRate" min="0" step="1" placeholder="142" required />
+              </label>
+              <label class="full">
+                Notes
+                <textarea id="activityNotes" rows="4" placeholder="Tempo effort, trainer intervals, easy spin, recovery day..."></textarea>
+              </label>
+              <div class="form-actions full">
+                <button type="submit" class="primary" id="saveButton">Save activity</button>
+                <button type="button" class="secondary" id="resetButton">Clear</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-label">Compare over time</p>
+                <h3>Monthly trend comparison</h3>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg id="trendChart" viewBox="0 0 760 320" role="img" aria-label="Monthly activity trend chart"></svg>
+            </div>
+            <div class="chart-legend">
+              <span><i class="dot cycle"></i> Cycle time</span>
+              <span><i class="dot distance"></i> Distance</span>
+              <span><i class="dot calories"></i> Active calories</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head split">
+            <div>
+              <p class="panel-label">Activity log</p>
+              <h3>Review, filter, and compare entries</h3>
+            </div>
+            <div class="filters">
+              <select id="filterRange">
+                <option value="all">All time</option>
+                <option value="90">Last 90 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="12m">Last 12 months</option>
+              </select>
+              <button type="button" class="secondary" id="exportButton">Export JSON</button>
+              <label class="import-button">
+                Import JSON
+                <input type="file" id="importInput" accept="application/json" />
+              </label>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="activity-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Cycle Time</th>
+                  <th>Distance</th>
+                  <th>Active Calories</th>
+                  <th>Total Calories</th>
+                  <th>Avg Heart Rate</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="activityTable"></tbody>
+            </table>
+          </div>
+
+          <div class="activity-cards" id="activityCards"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="rowTemplate">
+      <tr>
+        <td data-field="date"></td>
+        <td data-field="cycleTime"></td>
+        <td data-field="distance"></td>
+        <td data-field="activeCalories"></td>
+        <td data-field="totalCalories"></td>
+        <td data-field="avgHeartRate"></td>
+        <td data-field="notes"></td>
+        <td class="row-actions">
+          <button type="button" class="ghost edit-btn">Edit</button>
+          <button type="button" class="ghost danger delete-btn">Delete</button>
+        </td>
+      </tr>
+    </template>
+
+    <template id="cardTemplate">
+      <article class="activity-card">
+        <div class="activity-card-head">
+          <div>
+            <p class="activity-card-date" data-field="date"></p>
+            <h4 data-field="title">Session</h4>
+          </div>
+          <div class="activity-card-actions">
+            <button type="button" class="ghost edit-btn">Edit</button>
+            <button type="button" class="ghost danger delete-btn">Delete</button>
+          </div>
+        </div>
+        <div class="activity-card-grid">
+          <div>
+            <span>Cycle Time</span>
+            <strong data-field="cycleTime"></strong>
+          </div>
+          <div>
+            <span>Distance</span>
+            <strong data-field="distance"></strong>
+          </div>
+          <div>
+            <span>Active Calories</span>
+            <strong data-field="activeCalories"></strong>
+          </div>
+          <div>
+            <span>Total Calories</span>
+            <strong data-field="totalCalories"></strong>
+          </div>
+          <div>
+            <span>Avg Heart Rate</span>
+            <strong data-field="avgHeartRate"></strong>
+          </div>
+        </div>
+        <p class="activity-card-notes" data-field="notes"></p>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
