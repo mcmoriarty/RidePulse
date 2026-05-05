@@ -618,6 +618,19 @@ button:hover,
     align-items: flex-start;
   }
 
+  input[type="date"],
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
   .filters {
     width: 100%;
   }
